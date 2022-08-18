@@ -35,8 +35,9 @@ function createTextElement(text) {
 }
 
 let nextUnitOfWork = null;
+let wipRoot = null;
 
-function createDom (fiber) {
+function createDom(fiber) {
   // 如果没有type，说明是根fiber
   if (!fiber.type) {
     return;
@@ -50,7 +51,6 @@ function createDom (fiber) {
   Object.keys(fiber.props).filter(isProperty).forEach(key => {
     dom[key] = fiber.props[key]
   })
-  fiber.dom.appendChild(dom);
   return dom;
 }
 
@@ -73,7 +73,7 @@ function createRoot(container) {
 function findNextFiber(fiber) {
   if (fiber.child) return fiber.child;
   if (fiber.sibling) return fiber.sibling;
-  while(fiber.parent) {
+  while (fiber.parent) {
     fiber = fiber.parent;
     if (fiber.sibling) return fiber.sibling;
   }
@@ -81,13 +81,18 @@ function findNextFiber(fiber) {
 }
 
 /** 渲染当前fiber */
-function performUnitOfWork (fiber) {
-  const dom = createDom(fiber);
+function performUnitOfWork(fiber) {
+  if (!fiber.dom) {
+    fiber.dom = createDom(fiber);
+  }
+  if (fiber.parent) {
+    fiber.parent.dom.append(fiber.dom);
+  }
   const unitChildren = fiber.props.children;
   if (unitChildren.length) {
     unitChildren.reduce((preValue, child, idx) => {
       const newFiber = {
-        dom: dom || fiber.dom,
+        dom: undefined,
         parent: fiber,
         ...child
       }
@@ -105,11 +110,17 @@ function performUnitOfWork (fiber) {
 
 function workLoop(deadline) {
   let shouldYield = false
+  if (wipRoot) {
+    nextUnitOfWork = wipRoot;
+  }
   while (nextUnitOfWork && !shouldYield) {
     nextUnitOfWork = performUnitOfWork(
       nextUnitOfWork
     )
     shouldYield = deadline.timeRemaining() < 1
+  }
+  if (nextUnitOfWork) {
+    wipRoot = nextUnitOfWork;
   }
   requestIdleCallback(workLoop)
 }
