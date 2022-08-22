@@ -15,7 +15,7 @@ import Didact from './didact';
 // );
 
 /** @jsx Didact.createElement */
-const App = (
+const App = ({text}) => (
   <div className="App">
     <header className="App-header">
       <img src={logo} className="App-logo" alt="logo" />
@@ -28,14 +28,18 @@ const App = (
         target="_blank"
         rel="noopener noreferrer"
       >
-        Learn React11
+        {text}
       </a>
     </header>
   </div>
 );
 
 const root = Didact.createRoot(document.getElementById('root'));
-root.render(App);
+let text = 123;
+root.render(<div>
+  <button onClick={() => {text = 234}}>测试</button>
+  <App text={text} />
+</div>);
 
 
 // If you want to start measuring performance in your app, pass a function

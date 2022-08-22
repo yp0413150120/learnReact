@@ -41,6 +41,26 @@ function createDom(fiber) {
   return dom;
 }
 
+// 删除dom
+function commitDeletion(fiber, domParent) {
+  if (!fiber) return;
+  if (fiber.dom) {
+    domParent.removeChild(fiber.dom);
+  } else {
+    commitDeletion(fiber.child, domParent);
+  }
+}
+
+// function commitUpate(fiber) {
+//   if (!fiber) return;
+//   if (!fiber.dom) {
+//     commitUpate(fiber.child);
+//     return;
+//   }
+//   updateDom(fiber.dom, fiber.alternate.props, fiber.props);
+// }
+
+// 更新dom
 function updateDom(dom, prevProps, nextProps) {
   // 旧属性移除，对于事件需要特殊处理
   Object.keys(prevProps)
@@ -93,18 +113,25 @@ function commitRoot() {
 
 function commitWork(fiber) {
   if (!fiber) return;
-  const domParent = fiber.parent.dom;
+  let domParentFiber = fiber.parent;
+  while(!domParentFiber.dom) {
+    domParentFiber = domParentFiber.parent;
+  }
+  const domParent = domParentFiber.dom;
   // 如果是要删除的fiber，卸载
   if (fiber.effectTags === 'DELETION') {
-    domParent.removeChild(fiber.dom);
+    commitDeletion(fiber, domParent);
   }
-  else if (fiber.effectTags === 'PLACEMENT' && fiber.dom) {
-    // 如果是新增的fiber
-    domParent?.append(fiber.dom);
+  else if (fiber.effectTags === 'PLACEMENT') {
+    // 如果是新增的fiber, 且存在dom
+    if (fiber.dom) {
+      domParent?.append(fiber.dom);
+    }
     commitWork(fiber.child);
     commitWork(fiber.sibling);
   } else if (fiber.effectTags === 'UPDATE') {
     // 如果只是props更新
+    // commitUpate(fiber);
     updateDom(fiber.dom, fiber.alternate.props, fiber.props);
   }
 }
@@ -122,11 +149,24 @@ function findNextFiber(fiber) {
 
 /** 渲染当前fiber */
 function performUnitOfWork(fiber) {
+  if (fiber.type instanceof Function) {
+    updateFunctionComponent(fiber);
+  } else {
+    updateHostComponent(fiber);
+  }
+  return findNextFiber(fiber);
+}
+
+function updateHostComponent(fiber) {
   if (!fiber.dom) {
     fiber.dom = createDom(fiber);
   }
   reconcileChildren(fiber, fiber.props.children);
-  return findNextFiber(fiber);
+}
+
+function updateFunctionComponent(fiber) {
+  const children = [fiber.type(fiber.props)];
+  reconcileChildren(fiber, children);
 }
 
 function reconcileChildren(wibFiber, elements) {
