@@ -15,29 +15,33 @@ import Didact from './didact';
 // );
 
 /** @jsx Didact.createElement */
-const App = ({text}) => (
-  <div className="App">
-    <header className="App-header">
-      <img src={logo} className="App-logo" alt="logo" />
-      <p>
-        Edit <code>src/App.js</code> and save to reload.
-      </p>
-      <a
-        className="App-link"
-        href="https://reactjs.org"
-        target="_blank"
-        rel="noopener noreferrer"
-      >
-        {text}
-      </a>
-    </header>
-  </div>
-);
+const App = () => {
+  const [v, setV] = Didact.useState(123);
+  console.log('v', v)
+  return (
+    <div className="App">
+      <input value={v} onChange={({ target: value }) => setV(() => value)} />
+      <header className="App-header">
+        <img src={logo} className="App-logo" alt="logo" />
+        <p>
+          Edit <code>src/App.js</code> and save to reload.
+        </p>
+        <a
+          className="App-link"
+          href="https://reactjs.org"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          {v}
+        </a>
+      </header>
+    </div>
+  )
+};
 
 const root = Didact.createRoot(document.getElementById('root'));
 let text = 123;
 root.render(<div>
-  <button onClick={() => {text = 234}}>测试</button>
   <App text={text} />
 </div>);
 

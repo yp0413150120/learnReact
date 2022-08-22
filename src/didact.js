@@ -30,11 +30,11 @@ const isEvent = (name) => name.startWith('on');
 
 function createDom(fiber) {
   const dom = fiber.type === 'TEXT_ELEMENT'
-  ? document.createTextNode('')
-  : document.createElement(fiber.type);
-  
+    ? document.createTextNode('')
+    : document.createElement(fiber.type);
+
   const isProperty = (key) => key !== 'children';
-  
+
   Object.keys(fiber.props).filter(isProperty).forEach(key => {
     dom[key] = fiber.props[key]
   })
@@ -76,7 +76,7 @@ function updateDom(dom, prevProps, nextProps) {
     .filter(isNew(prevProps, nextProps))
     .forEach(key => dom.addEventLisntener(key.toLocaleLowerCase().slice(2), nextProps[key]));
   Object.keys(nextProps).filter(isProperty).filter(isNew(prevProps, nextProps)).forEach(key => {
-      dom[key] = nextProps[key];
+    dom[key] = nextProps[key];
   })
 }
 
@@ -114,7 +114,7 @@ function commitRoot() {
 function commitWork(fiber) {
   if (!fiber) return;
   let domParentFiber = fiber.parent;
-  while(!domParentFiber.dom) {
+  while (!domParentFiber.dom) {
     domParentFiber = domParentFiber.parent;
   }
   const domParent = domParentFiber.dom;
@@ -164,9 +164,42 @@ function updateHostComponent(fiber) {
   reconcileChildren(fiber, fiber.props.children);
 }
 
+let wibFiber = null;
+let hookIndex = 0;
 function updateFunctionComponent(fiber) {
+  wibFiber = fiber;
+  hookIndex = 0;
+  wibFiber.hooks = [];
+
   const children = [fiber.type(fiber.props)];
   reconcileChildren(fiber, children);
+}
+
+function useState(initial) {
+  const oldHook = wibFiber?.alternate?.hooks?.[hookIndex];
+  const hook = {
+    state: oldHook?.state || initial,
+    queue: [],
+  }
+  wibFiber.hooks.push(hook)
+  hookIndex++;
+  const actions = oldHook ? oldHook.queue : [];
+  actions.forEach(action => {
+    hook.state = action(hook.state)
+  })
+
+  const setState = action => {
+    hook.queue.push(action);
+    wipRoot = {
+      dom: currentRoot.dom,
+      props: currentRoot.props,
+      alternate: currentRoot,
+    }
+    nextUnitOfWork = wipRoot;
+    deletions = [];
+  }
+
+  return [hook.state, setState]
 }
 
 function reconcileChildren(wibFiber, elements) {
@@ -174,7 +207,7 @@ function reconcileChildren(wibFiber, elements) {
     let oldFiber = wibFiber.alternate && wibFiber.alternate.child;
     let index = 0;
     let preFiber;
-    while(index < elements.length || oldFiber) {
+    while (index < elements.length || oldFiber) {
       const element = elements[index];
       let newFiber
       const sameType = element && oldFiber && element.type === oldFiber.type;
@@ -215,7 +248,7 @@ function reconcileChildren(wibFiber, elements) {
         oldFiber = oldFiber.sibling;
       }
       preFiber = newFiber;
-      index ++;
+      index++;
     }
     // elements.reduce((preValue, child, idx) => {
     //   const newFiber = {
@@ -250,5 +283,6 @@ function workLoop(deadline) {
 
 export default {
   createElement,
-  createRoot
+  createRoot,
+  useState,
 };
